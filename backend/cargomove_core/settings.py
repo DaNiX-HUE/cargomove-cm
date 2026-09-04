@@ -87,7 +87,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # --- Internationalization ---
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Africa/Yaounde'
+TIME_ZONE = 'Africa/Douala'
 USE_I18N = True
 USE_TZ = True
 
