@@ -41,6 +41,9 @@ class Vehicle(models.Model):
     max_weight_kg = models.FloatField()
     max_volume_m3 = models.FloatField()
     is_available = models.BooleanField(default=True)
+    current_lat = models.FloatField(null=True, blank=True)
+    current_lng = models.FloatField(null=True, blank=True)
+    last_location_update = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.vehicle_type} ({self.license_plate})"

@@ -52,6 +52,9 @@ class VehicleViewSet(viewsets.ModelViewSet):
         serializer.save(driver=driver)
 
 
+from .utils import create_offers_for_shipment  # add this import at the top
+
+
 class ShipmentViewSet(viewsets.ModelViewSet):
     serializer_class = ShipmentSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -60,11 +63,12 @@ class ShipmentViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.role == 'SENDER':
             return Shipment.objects.filter(sender__user=user)
-        return Shipment.objects.all()  # Drivers see all open shipments to bid on
+        return Shipment.objects.all() # Drivers see all open shipments to bid on
 
     def perform_create(self, serializer):
         customer = Customer.objects.get(user=self.request.user)
-        serializer.save(sender=customer)
+        shipment = serializer.save(sender=customer)
+        create_offers_for_shipment(shipment)  # <-- new line
 
 
 class TransportOfferViewSet(viewsets.ModelViewSet):
