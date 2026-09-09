@@ -1,3 +1,4 @@
+from django.db.models import Avg
 from rest_framework import serializers
 from .models import (
     User, Customer, Driver, Vehicle, Shipment,
@@ -93,9 +94,14 @@ class ShipmentSerializer(serializers.ModelSerializer):
             'id', 'sender', 'origin_city', 'origin_lat', 'origin_lng',
             'destination_city', 'destination_lat', 'destination_lng',
             'pickup_date', 'total_weight_kg', 'total_volume_m3',
+            'delivery_type', 'shared_load', 'loading_assistance',
+            'special_handling', 'estimated_price_xaf',
             'status', 'created_at', 'items',
         ]
-        read_only_fields = ['sender', 'total_weight_kg', 'total_volume_m3', 'status']
+        read_only_fields = [
+            'sender', 'total_weight_kg', 'total_volume_m3',
+            'estimated_price_xaf', 'status',
+        ]
 
     def create(self, validated_data):
         items_data = validated_data.pop('items')
@@ -137,6 +143,15 @@ class RatingSerializer(serializers.ModelSerializer):
                 "You can only rate a shipment after it has been delivered."
             )
         return value
+
+    def create(self, validated_data):
+        rating = super().create(validated_data)
+        # Backend must recalculate the driver's average rating (doc: Ratings module).
+        driver = rating.driver
+        avg = driver.received_ratings.aggregate(avg=Avg('stars'))['avg'] or 0
+        driver.rating_average = round(avg, 2)
+        driver.save(update_fields=['rating_average'])
+        return rating
 
 
 class NotificationSerializer(serializers.ModelSerializer):
