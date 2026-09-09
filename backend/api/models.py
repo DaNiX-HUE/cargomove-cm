@@ -57,6 +57,11 @@ class Shipment(models.Model):
         ('DELIVERED', 'Delivered'),
         ('CANCELLED', 'Cancelled'),
     ]
+    DELIVERY_TYPE_CHOICES = [
+        ('ECONOMY', 'Economy'),
+        ('EXPRESS', 'Express'),
+        ('SCHEDULED', 'Scheduled'),
+    ]
     sender = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='shipments')
     origin_city = models.CharField(max_length=100)
     origin_lat = models.FloatField()
@@ -68,6 +73,11 @@ class Shipment(models.Model):
     total_weight_kg = models.FloatField(default=0.0)
     total_volume_m3 = models.FloatField(default=0.0)
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PENDING')
+    delivery_type = models.CharField(max_length=10, choices=DELIVERY_TYPE_CHOICES, default='ECONOMY')
+    shared_load = models.BooleanField(default=False)
+    loading_assistance = models.BooleanField(default=False)
+    special_handling = models.BooleanField(default=False)
+    estimated_price_xaf = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -92,6 +102,7 @@ class TransportOffer(models.Model):
         ('PENDING', 'Pending'),
         ('ACCEPTED', 'Accepted'),
         ('REJECTED', 'Rejected'),
+        ('EXPIRED', 'Expired'),
     ]
     shipment = models.ForeignKey(Shipment, on_delete=models.CASCADE, related_name='offers')
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='offers')
