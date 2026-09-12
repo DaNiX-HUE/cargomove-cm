@@ -23,6 +23,7 @@ def haversine_distance_km(lat1, lng1, lat2, lng2):
 
 from django.db.models import Sum
 from .models import Vehicle, TransportOffer
+from .pricing import calculate_price
 
 
 def get_committed_capacity(vehicle):
@@ -93,11 +94,39 @@ def find_matching_vehicles(shipment, max_distance_km=100, top_n=5):
     return candidates[:top_n]
 
 
+def estimate_shipment_price(shipment):
+    """
+    Computes the shipment's estimated price via the Pricing Service and
+    saves it on the shipment (estimated_price_xaf). Uses the straight-line
+    origin -> destination distance, since the price should be consistent
+    no matter which driver ends up taking the job.
+    """
+    distance_km = haversine_distance_km(
+        shipment.origin_lat, shipment.origin_lng,
+        shipment.destination_lat, shipment.destination_lng,
+    )
+    price = calculate_price(
+        distance=distance_km,
+        delivery_type=shipment.delivery_type,
+        weight=shipment.total_weight_kg,
+        volume=shipment.total_volume_m3,
+        shared_load=shipment.shared_load,
+        loading_assistance=shipment.loading_assistance,
+        special_handling=shipment.special_handling,
+    )
+    shipment.estimated_price_xaf = price
+    shipment.save(update_fields=['estimated_price_xaf'])
+    return price
+
+
 def create_offers_for_shipment(shipment):
     """
     Runs the matching algorithm and auto-creates PENDING TransportOffers
-    for the top matching vehicles.
+    for the top matching vehicles, priced via the Pricing Service.
     """
+    if not shipment.estimated_price_xaf:
+        estimate_shipment_price(shipment)
+
     matches = find_matching_vehicles(shipment)
     created_offers = []
 
@@ -105,7 +134,10 @@ def create_offers_for_shipment(shipment):
         offer, created = TransportOffer.objects.get_or_create(
             shipment=shipment,
             vehicle=match['vehicle'],
-            defaults={'offered_fare_xaf': 0, 'status': 'PENDING'},
+            defaults={
+                'offered_fare_xaf': shipment.estimated_price_xaf,
+                'status': 'PENDING',
+            },
         )
         if created:
             created_offers.append(offer)

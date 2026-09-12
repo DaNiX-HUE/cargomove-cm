@@ -1,4 +1,6 @@
+from django.db import transaction
 from rest_framework import generics, viewsets, permissions, status
+from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -12,6 +14,9 @@ from .serializers import (
     TransportOfferSerializer, TrackingHistorySerializer,
     RatingSerializer, NotificationSerializer,
 )
+from .permissions import IsCustomer, IsDriver
+from .notifications import notify
+from .utils import create_offers_for_shipment
 
 
 class CustomerRegisterView(generics.CreateAPIView):
@@ -42,7 +47,11 @@ class DriverViewSet(viewsets.ModelViewSet):
 
 class VehicleViewSet(viewsets.ModelViewSet):
     serializer_class = VehicleSerializer
-    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [permissions.IsAuthenticated(), IsDriver()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
         return Vehicle.objects.filter(driver__user=self.request.user)
@@ -51,13 +60,27 @@ class VehicleViewSet(viewsets.ModelViewSet):
         driver = Driver.objects.get(user=self.request.user)
         serializer.save(driver=driver)
 
-
-from .utils import create_offers_for_shipment  # add this import at the top
+    def destroy(self, request, *args, **kwargs):
+        # Business rule: vehicle cannot be deleted if it is transporting cargo.
+        vehicle = self.get_object()
+        is_transporting = TransportOffer.objects.filter(
+            vehicle=vehicle, status='ACCEPTED',
+        ).exclude(shipment__status__in=['DELIVERED', 'CANCELLED']).exists()
+        if is_transporting:
+            return Response(
+                {'detail': 'This vehicle is currently transporting cargo and cannot be deleted.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
 
 
 class ShipmentViewSet(viewsets.ModelViewSet):
     serializer_class = ShipmentSerializer
-    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [permissions.IsAuthenticated(), IsCustomer()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user
@@ -68,13 +91,87 @@ class ShipmentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         customer = Customer.objects.get(user=self.request.user)
         shipment = serializer.save(sender=customer)
-        create_offers_for_shipment(shipment)  # <-- new line
+        offers = create_offers_for_shipment(shipment)
+        for offer in offers:
+            notify(
+                offer.vehicle.driver.user,
+                'New shipment offer',
+                f'A new shipment ({shipment.origin_city} → {shipment.destination_city}) matches your vehicle.',
+            )
 
 
 class TransportOfferViewSet(viewsets.ModelViewSet):
-    queryset = TransportOffer.objects.all()
     serializer_class = TransportOfferSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'DRIVER':
+            return TransportOffer.objects.filter(vehicle__driver__user=user)
+        return TransportOffer.objects.filter(shipment__sender__user=user)
+
+    @action(detail=True, methods=['post'])
+    def accept(self, request, pk=None):
+        """
+        Business rule: first accepted offer wins, all other pending
+        offers on the same shipment expire automatically.
+        """
+        offer = self.get_object()
+
+        if offer.vehicle.driver.user != request.user:
+            return Response({'detail': 'This is not your offer.'}, status=status.HTTP_403_FORBIDDEN)
+        if offer.status != 'PENDING':
+            return Response({'detail': 'This offer is no longer available.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            shipment = Shipment.objects.select_for_update().get(pk=offer.shipment_id)
+            if shipment.status != 'PENDING':
+                return Response(
+                    {'detail': 'This shipment already has an accepted driver.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            offer.status = 'ACCEPTED'
+            offer.save(update_fields=['status'])
+
+            TransportOffer.objects.filter(
+                shipment=shipment, status='PENDING',
+            ).exclude(pk=offer.pk).update(status='EXPIRED')
+
+            shipment.status = 'MATCHED'
+            shipment.save(update_fields=['status'])
+
+            vehicle = offer.vehicle
+            vehicle.is_available = False
+            vehicle.save(update_fields=['is_available'])
+
+        notify(
+            shipment.sender.user,
+            'Driver accepted your shipment',
+            f'{vehicle.driver.user.username} accepted shipment #{shipment.id}.',
+        )
+
+        return Response(TransportOfferSerializer(offer).data)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        offer = self.get_object()
+
+        if offer.vehicle.driver.user != request.user:
+            return Response({'detail': 'This is not your offer.'}, status=status.HTTP_403_FORBIDDEN)
+        if offer.status != 'PENDING':
+            return Response({'detail': 'This offer was already handled.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        offer.status = 'REJECTED'
+        offer.save(update_fields=['status'])
+
+        notify(
+            offer.shipment.sender.user,
+            'Driver declined an offer',
+            f'{offer.vehicle.driver.user.username} declined shipment #{offer.shipment_id}.',
+        )
+
+        return Response(TransportOfferSerializer(offer).data)
 
 
 class TrackingHistoryViewSet(viewsets.ModelViewSet):
