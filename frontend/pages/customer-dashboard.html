@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Customer Dashboard-CargoMove CM</title>
+
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+
+    <header class="navbar">
+
+        <a href="../index.html" class="logo">
+            CargoMove CM
+        </a>
+
+        <nav>
+            <a href="customer-dashboard.html">Dashboard</a>
+            <a href="create-shipment.html">Create Shipment</a>
+            <a href="login.html">Logout</a>
+        </nav>
+
+    </header>
+
+    <main class="dashboard-container">
+
+        <section class="dashboard-welcome">
+
+            <div>
+                <h1>Welcome Back!</h1>
+
+                <p>
+                    Manage your shipments and deliveries from your dashboard.
+                </p>
+            </div>
+
+            <a href="create-shipment.html" class="dashboard-button">
+                + Create Shipment
+            </a>
+
+        </section>
+
+        <section class="dashboard-stats">
+
+            <div class="stat-card">
+                <h3>Active Shipments</h3>
+                <p>2</p>
+            </div>
+
+            <div class="stat-card">
+                <h3>Completed</h3>
+                <p>8</p>
+            </div>
+
+            <div class="stat-card">
+                <h3>Pending</h3>
+                <p>1</p>
+            </div>
+
+        </section>
+
+        <section class="shipments-section">
+
+            <div class="section-header">
+
+                <h2>My Active Shipments</h2>
+
+                <a href="#">
+                    View All
+                </a>
+
+            </div>
+
+            <div class="shipment-card">
+
+                <div class="shipment-info">
+
+                    <h3>Shipment #CM001</h3>
+
+                    <p>
+                        <strong>From:</strong> Yaoundé
+                    </p>
+
+                    <p>
+                        <strong>To:</strong> Douala
+                    </p>
+
+                </div>
+
+                <div class="shipment-status">
+
+                    <span class="status in-transit">
+                        In Transit
+                    </span>
+
+                    <a href="tracking.html" class="view-button">
+                        Track
+                    </a>
+
+                </div>
+
+            </div>
+
+            <div class="shipment-card">
+
+                <div class="shipment-info">
+
+                    <h3>Shipment #CM002</h3>
+
+                    <p>
+                        <strong>From:</strong> Buea
+                    </p>
+
+                    <p>
+                        <strong>To:</strong> Yaoundé
+                    </p>
+
+                </div>
+
+                <div class="shipment-status">
+
+                    <span class="status pending">
+                        Pending
+                    </span>
+
+                    <a href="#" class="view-button">
+                        View
+                    </a>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="quick-actions">
+
+            <h2>Quick Actions</h2>
+
+            <div class="action-grid">
+
+                <a href="create-shipment.html" class="action-card">
+
+                    <span class="action-icon">🚚</span>
+                    <h3>Create Shipment</h3>
+                    <p>
+                        Request transportation for your cargo.
+                    </p>
+
+                </a>
+
+                <a href="#" class="action-card">
+
+                    <span class="action-icon">📦</span>
+
+                    <h3>My Shipments</h3>
+
+                    <p>
+                        View your shipment history.
+                    </p>
+
+                </a>
+
+                <a href="#" class="action-card">
+
+                    <span class="action-icon">🔔</span>
+
+                    <h3>Notifications</h3>
+
+                    <p>
+                        Check your latest notifications.
+                    </p>
+
+                </a>
+
+                <a href="#" class="action-card">
+
+                    <span class="action-icon">👤</span>
+                    <h3>My Profile</h3>
+                    <p>
+                        Manage your account information.
+                    </p>
+
+                </a>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer>
+
+        <p>
+            &copy; 2026 CargoMove CM. All rights reserved.
+        </p>
+
+    </footer>
+
+    <script src="../js/main.js"></script>
+
+</body>
+
+</html>

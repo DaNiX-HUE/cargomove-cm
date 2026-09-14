@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Create Shipment-CargoMove CM</title>
+
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+
+    <header class="navbar">
+
+        <a href="../index.html" class="logo">
+            CargoMove CM
+        </a>
+
+        <nav>
+
+            <a href="customer-dashboard.html">
+                Dashboard
+            </a>
+
+            <a href="create-shipment.html">
+                Create Shipment
+            </a>
+
+            <a href="login.html">
+                Logout
+            </a>
+
+        </nav>
+
+    </header>
+
+    <main class="shipment-container">
+
+        <div class="shipment-form-card">
+
+            <h1>Create a Shipment</h1>
+
+            <p class="shipment-subtitle">
+                Tell us about your cargo and where you want it delivered.
+            </p>
+
+
+            <form id="shipmentForm">
+
+                <h2>1. Delivery Information</h2>
+
+                <div class="form-group">
+
+                    <label for="pickup">
+                        Pickup Location
+                    </label>
+
+                    <input
+                        type="text"
+                        id="pickup"
+                        name="pickup_location"
+                        placeholder="Where should the cargo be picked up?"
+                        required
+                    >
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="destination">
+                        Destination
+                    </label>
+
+                    <input
+                        type="text"
+                        id="destination"
+                        name="destination"
+                        placeholder="Where should the cargo be delivered?"
+                        required
+                    >
+
+                </div>
+
+                <h2>2. Cargo Information</h2>
+
+                <div class="form-group">
+
+                    <label for="cargoCategory">
+                        Cargo Category
+                    </label>
+
+                    <select
+                        id="cargoCategory"
+                        name="cargo_category"
+                        required
+                    >
+
+                        <option value="">
+                            Select cargo category
+                        </option>
+
+                        <option value="furniture">
+                            Furniture / Appliances
+                        </option>
+
+                        <option value="agricultural">
+                            Agricultural Products
+                        </option>
+
+                        <option value="construction">
+                            Construction Materials
+                        </option>
+
+                        <option value="office">
+                            Office Equipment
+                        </option>
+
+                        <option value="general">
+                            General Goods
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="itemName">
+                        Item / Cargo Description
+                    </label>
+
+                    <input
+                        type="text"
+                        id="itemName"
+                        name="item_name"
+                        placeholder="Example: 2 sofas, 1 wardrobe, 1 table"
+                        required
+                    >
+
+                </div>
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label for="quantity">
+                            Quantity
+                        </label>
+
+                        <input
+                            type="number"
+                            id="quantity"
+                            name="quantity"
+                            min="1"
+                            placeholder="Example: 2"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="weight">
+                            Weight (kg)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="weight"
+                            name="cargo_weight"
+                            min="0"
+                            step="0.1"
+                            placeholder="Example: 500"
+                        >
+
+                    </div>
+
+                </div>
+
+                <h2>3. Cargo Size</h2>
+
+
+                <p class="form-help">
+                    If you do not know the exact measurements, you can provide an estimate.
+                </p>
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label for="length">
+                            Length (m)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="length"
+                            name="length"
+                            min="0"
+                            step="0.01"
+                            placeholder="Example: 2"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="width">
+                            Width (m)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="width"
+                            name="width"
+                            min="0"
+                            step="0.01"
+                            placeholder="Example: 1"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="height">
+                            Height (m)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="height"
+                            name="height"
+                            min="0"
+                            step="0.01"
+                            placeholder="Example: 1"
+                        >
+
+                    </div>
+
+                </div>
+
+                <h2>4. Handling Requirements</h2>
+
+                <div class="checkbox-group">
+
+                    <label>
+                        <input
+                            type="checkbox"
+                            name="handling"
+                            value="fragile"
+                        >
+                        Fragile cargo
+                    </label>
+
+                    <label>
+                        <input
+                            type="checkbox"
+                            name="handling"
+                            value="loading_assistance"
+                        >
+                        Loading assistance
+                    </label>
+
+                    <label>
+                        <input
+                            type="checkbox"
+                            name="handling"
+                            value="covered_transport"
+                        >
+                        Covered transport required
+                    </label>
+
+                    <label>
+                        <input
+                            type="checkbox"
+                            name="handling"
+                            value="special_handling"
+                        >
+                        Special handling
+                    </label>
+
+                </div>
+
+                <h2>5. Delivery Option</h2>
+
+                <div class="delivery-options">
+
+                    <label class="delivery-option">
+
+                        <input
+                            type="radio"
+                            name="delivery_option"
+                            value="express"
+                            required
+                        >
+
+                        <div>
+
+                            <strong>Express</strong>
+
+                            <p>
+                                Dedicated transportation for your shipment.
+                            </p>
+
+                        </div>
+
+                    </label>
+
+                    <label class="delivery-option">
+
+                        <input
+                            type="radio"
+                            name="delivery_option"
+                            value="shared"
+                        >
+
+                        <div>
+
+                            <strong>Shared / Economy</strong>
+
+                            <p>
+                                Share available vehicle capacity with other shipments.
+                            </p>
+
+                        </div>
+
+                    </label>
+
+                    <label class="delivery-option">
+
+                        <input
+                            type="radio"
+                            name="delivery_option"
+                            value="scheduled"
+                        >
+
+                        <div>
+
+                            <strong>Scheduled</strong>
+
+                            <p>
+                                Choose a preferred transportation or delivery time.
+                            </p>
+
+                        </div>
+
+                    </label>
+
+                </div>
+
+                <button
+                    type="submit"
+                    class="auth-button shipment-submit"
+                >
+                    Find Compatible Drivers
+                </button>
+
+            </form>
+
+        </div>
+
+    </main>
+
+    <footer>
+
+        <p>
+            &copy; 2026 CargoMove CM. All rights reserved.
+        </p>
+
+    </footer>
+
+    <script src="../js/main.js"></script>
+
+</body>
+
+</html>

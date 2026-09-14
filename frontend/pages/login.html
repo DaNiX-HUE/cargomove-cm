@@ -1,11 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Login - CargoMove</title>
+
     <link rel="stylesheet" href="../css/style.css">
 </head>
+
 <body>
     
     <header class="navbar">
@@ -16,5 +20,58 @@
             <a href="register.html">Register</a>
         </nav>
     </header>
+
+
+    <main class="auth-container">
+        <div class="auth-card">
+            <h1>Welcome Back!</h1>
+            <P class="auth-subtitle">
+                Login to your CargoMove account
+            </P>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="Enter your email"required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Enter your password" required
+                    >
+                </div>
+
+                <div class="form-options">
+
+                    <label>
+                        <input type="checkbox" id="remember">
+                        Remember me
+                    </label>
+                    <a href="#"> Forgot password?</a>
+                </div>
+
+                <button type="submit" class="auth-button">
+                    Login
+                </button>
+            </form>
+
+            <p class="switch page">
+                Don't have an account?
+                <a href="register.html">Create an account</a>
+            </p>
+
+        </div>
+
+    </main>
+
+    <script src="../js/main.js"></script>
 </body>
 </html>
