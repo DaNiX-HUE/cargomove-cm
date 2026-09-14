@@ -2,6 +2,8 @@ from rest_framework import generics, viewsets, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.decorators import action
+from .utils import create_offers_for_shipment, accept_transport_offer, transition_shipment_status
 from .models import (
     User, Customer, Driver, Vehicle, Shipment,
     CargoItem, TransportOffer, TrackingHistory, Rating, Notification
@@ -12,6 +14,11 @@ from .serializers import (
     TransportOfferSerializer, TrackingHistorySerializer,
     RatingSerializer, NotificationSerializer,
 )
+class MeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        return Response(UserSerializer(request.user).data)
 
 
 class CustomerRegisterView(generics.CreateAPIView):
@@ -63,18 +70,66 @@ class ShipmentViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.role == 'SENDER':
             return Shipment.objects.filter(sender__user=user)
-        return Shipment.objects.all() # Drivers see all open shipments to bid on
+        return Shipment.objects.all()
 
     def perform_create(self, serializer):
         customer = Customer.objects.get(user=self.request.user)
         shipment = serializer.save(sender=customer)
-        create_offers_for_shipment(shipment)  # <-- new line
+        create_offers_for_shipment(shipment)
+
+    @action(detail=True, methods=['post'])
+    def start_transit(self, request, pk=None):
+        shipment = self.get_object()
+        try:
+            transition_shipment_status(shipment, 'IN_TRANSIT')
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(ShipmentSerializer(shipment).data)
+
+    @action(detail=True, methods=['post'])
+    def mark_delivered(self, request, pk=None):
+        shipment = self.get_object()
+        try:
+            transition_shipment_status(shipment, 'DELIVERED')
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(ShipmentSerializer(shipment).data)
+
+    @action(detail=True, methods=['post'])
+    def cancel(self, request, pk=None):
+        shipment = self.get_object()
+        try:
+            transition_shipment_status(shipment, 'CANCELLED')
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(ShipmentSerializer(shipment).data)
 
 
 class TransportOfferViewSet(viewsets.ModelViewSet):
     queryset = TransportOffer.objects.all()
     serializer_class = TransportOfferSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=True, methods=['post'])
+    def accept(self, request, pk=None):
+        offer = self.get_object()
+        try:
+            accept_transport_offer(offer)
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(TransportOfferSerializer(offer).data)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        offer = self.get_object()
+        if offer.status != 'PENDING':
+            return Response(
+                {'detail': f"Offer is already '{offer.status}'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        offer.status = 'REJECTED'
+        offer.save()
+        return Response(TransportOfferSerializer(offer).data)
 
 
 class TrackingHistoryViewSet(viewsets.ModelViewSet):

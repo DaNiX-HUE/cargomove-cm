@@ -6,6 +6,11 @@ from .views import (
     CustomerViewSet, DriverViewSet, VehicleViewSet, ShipmentViewSet,
     TransportOfferViewSet, TrackingHistoryViewSet, RatingViewSet, NotificationViewSet,
 )
+from .views import (
+    CustomerRegisterView, DriverRegisterView, MeView,
+    CustomerViewSet, DriverViewSet, VehicleViewSet, ShipmentViewSet,
+    TransportOfferViewSet, TrackingHistoryViewSet, RatingViewSet, NotificationViewSet,
+)
 
 router = DefaultRouter()
 router.register('customers', CustomerViewSet)
@@ -22,5 +27,7 @@ urlpatterns = [
     path('auth/register/driver/', DriverRegisterView.as_view(), name='register-driver'),
     path('auth/login/', TokenObtainPairView.as_view(), name='token-obtain-pair'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
+    path('auth/me/', MeView.as_view(), name='me'),
     path('', include(router.urls)),
+
 ]

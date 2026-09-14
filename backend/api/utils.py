@@ -111,3 +111,51 @@ def create_offers_for_shipment(shipment):
             created_offers.append(offer)
 
     return created_offers
+
+
+ALLOWED_SHIPMENT_TRANSITIONS = {
+    'PENDING': ['MATCHED', 'CANCELLED'],
+    'MATCHED': ['IN_TRANSIT', 'CANCELLED'],
+    'IN_TRANSIT': ['DELIVERED'],
+    'DELIVERED': [],
+    'CANCELLED': [],
+}
+
+
+def transition_shipment_status(shipment, new_status):
+    """
+    Moves a Shipment to new_status only if the transition is legal.
+    Raises ValueError with a clear message otherwise.
+    """
+    current = shipment.status
+    allowed = ALLOWED_SHIPMENT_TRANSITIONS.get(current, [])
+
+    if new_status not in allowed:
+        raise ValueError(
+            f"Cannot move shipment from '{current}' to '{new_status}'. "
+            f"Allowed next steps: {allowed or 'none (final state)'}."
+        )
+
+    shipment.status = new_status
+    shipment.save()
+    return shipment
+
+
+def accept_transport_offer(offer):
+    """
+    Accepts one offer, auto-rejects all other pending offers on the same
+    shipment, and moves the shipment to MATCHED.
+    """
+    if offer.status != 'PENDING':
+        raise ValueError(f"Offer is already '{offer.status}', cannot accept.")
+
+    offer.status = 'ACCEPTED'
+    offer.save()
+
+    TransportOffer.objects.filter(
+        shipment=offer.shipment,
+        status='PENDING',
+    ).exclude(id=offer.id).update(status='REJECTED')
+
+    transition_shipment_status(offer.shipment, 'MATCHED')
+    return offer

@@ -1,0 +1,76 @@
+:root {
+    --color-bg: #FFFFFF;
+    --color-text: #2C2C2A;
+    --color-text-muted: #5F5E5A;
+    --color-border: #D3D1C7;
+    --color-accent: #378ADD;
+    --color-accent-dark: #185FA5;
+
+    --status-pending: #854F0B;
+    --status-pending-bg: #FAEEDA;
+    --status-matched: #185FA5;
+    --status-matched-bg: #E6F1FB;
+    --status-transit: #712B13;
+    --status-transit-bg: #FAECE7;
+    --status-delivered: #27500A;
+    --status-delivered-bg: #EAF3DE;
+    --status-cancelled: #791F1F;
+    --status-cancelled-bg: #FCEBEB;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    color: var(--color-text);
+    background-color: var(--color-bg);
+}
+
+.navbar {
+    border-bottom: 1px solid var(--color-border);
+    padding: 1rem 0;
+}
+
+.navbar-brand {
+    font-weight: 500;
+    color: var(--color-text) !important;
+}
+
+main#app {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+main#app.wide {
+    max-width: 960px;
+}
+
+.btn-primary {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+.btn-primary:hover {
+    background-color: var(--color-accent-dark);
+    border-color: var(--color-accent-dark);
+}
+
+.card {
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    box-shadow: none;
+    margin-bottom: 1rem;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-PENDING { color: var(--status-pending); background: var(--status-pending-bg); }
+.status-MATCHED { color: var(--status-matched); background: var(--status-matched-bg); }
+.status-IN_TRANSIT { color: var(--status-transit); background: var(--status-transit-bg); }
+.status-DELIVERED { color: var(--status-delivered); background: var(--status-delivered-bg); }
+.status-CANCELLED { color: var(--status-cancelled); background: var(--status-cancelled-bg); }
