@@ -19,6 +19,9 @@ from .serializers import (
 )
 
 
+from .utils import create_offers_for_shipment, transition_shipment_status, haversine_distance_km
+from .pricing import calculate_price
+
 class MeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -132,7 +135,29 @@ class ShipmentViewSet(viewsets.ModelViewSet):
         except ValueError as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(ShipmentSerializer(shipment).data)
-
+    @action(detail=False, methods=['post'])
+    def estimate_price(self, request):
+        data = request.data
+        try:
+            distance_km = haversine_distance_km(
+                float(data['origin_lat']), float(data['origin_lng']),
+                float(data['destination_lat']), float(data['destination_lng']),
+            )
+            price = calculate_price(
+                distance=distance_km,
+                delivery_type=data.get('delivery_type', 'ECONOMY'),
+                weight=float(data.get('total_weight_kg', 0)),
+                volume=float(data.get('total_volume_m3', 0)),
+                shared_load=bool(data.get('shared_load', False)),
+                loading_assistance=bool(data.get('loading_assistance', False)),
+                special_handling=bool(data.get('special_handling', False)),
+            )
+        except (KeyError, ValueError, TypeError):
+            return Response(
+                {'detail': 'Missing or invalid fields for price estimate.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response({'estimated_price_xaf': price, 'distance_km': round(distance_km, 2)})
 
 class TransportOfferViewSet(viewsets.ModelViewSet):
     serializer_class = TransportOfferSerializer

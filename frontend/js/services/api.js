@@ -27,10 +27,28 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
 
     const data = await response.json().catch(() => null);
 
-    if (!response.ok) {
-        const message = data && data.detail ? data.detail : 'Something went wrong.';
+        if (!response.ok) {
+        let message = 'Something went wrong.';
+        if (data) {
+            message = data.detail ? data.detail : extractFirstError(data);
+        }
         throw new Error(message);
     }
 
+   function extractFirstError(obj, prefix = '') {
+    for (const key in obj) {
+        const value = obj[key];
+        const label = prefix ? `${prefix}.${key}` : key;
+
+        if (Array.isArray(value)) {
+            return `${label}: ${value[0]}`;
+        } else if (typeof value === 'object' && value !== null) {
+            return extractFirstError(value, label);
+        } else {
+            return `${label}: ${value}`;
+        }
+    }
+    return 'Something went wrong.';
+}
     return data;
 }
