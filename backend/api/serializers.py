@@ -8,8 +8,9 @@ from .models import (
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-
+    role = serializers.CharField(required=False)
     class Meta:
+
         model = User
         fields = [
             'id', 'username', 'email', 'password', 'role',
