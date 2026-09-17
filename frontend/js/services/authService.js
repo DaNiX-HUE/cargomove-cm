@@ -28,3 +28,17 @@ function logout() {
     clearAuth();
     window.location.href = 'index.html';
 }
+async function enforceProfileComplete() {
+    try {
+        const status = await apiRequest('/auth/profile-status/');
+        if (!status.profile_complete) {
+            const onProfilePage = window.location.pathname.includes('completeProfile.html');
+            if (!onProfilePage) {
+                window.location.href = 'completeProfile.html';
+            }
+        }
+    } catch (err) {
+        // If the check itself fails (e.g. expired session), apiRequest already
+        // handles redirecting to login — nothing extra needed here.
+    }
+}

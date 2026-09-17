@@ -3,11 +3,12 @@ let dropoffMarker = null;
 let map;
 let itemCount = 0;
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     if (!isLoggedIn()) {
         window.location.href = '../index.html';
         return;
     }
+    await enforceProfileComplete();
     initMap();
     addItemRow();
     document.getElementById('addItemBtn').addEventListener('click', addItemRow);

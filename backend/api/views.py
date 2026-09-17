@@ -29,6 +29,29 @@ class MeView(APIView):
         return Response(UserSerializer(request.user).data)
 
 
+class UpdateProfilePhotosView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request):
+        user = request.user
+        for field in ['profile_picture', 'id_card_photo', 'selfie_with_id_photo']:
+            if field in request.FILES:
+                setattr(user, field, request.FILES[field])
+        user.save()
+        return Response(UserSerializer(user).data)
+
+
+class ProfileStatusView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        is_complete = bool(
+            user.profile_picture and user.id_card_photo and user.selfie_with_id_photo
+        )
+        return Response({'profile_complete': is_complete})
+
+
 class CustomerRegisterView(generics.CreateAPIView):
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer

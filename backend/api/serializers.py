@@ -14,7 +14,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'email', 'password', 'role',
-            'phone_number', 'address', 'profile_picture', 'id_card_photo',
+            'phone_number', 'address', 'profile_picture', 'id_card_photo','selfie_with_id_photo',
         ]
 
     def create(self, validated_data):

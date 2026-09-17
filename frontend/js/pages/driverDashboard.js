@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = '../index.html';
         return;
     }
+    await enforceProfileComplete();
     await loadVehicle();
     await loadOffers();
     document.getElementById('offersList').addEventListener('click', handleOfferAction);

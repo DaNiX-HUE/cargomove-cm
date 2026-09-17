@@ -13,6 +13,9 @@ class User(AbstractUser):
     address = models.CharField(max_length=255, null=True, blank=True)
     profile_picture = models.ImageField(upload_to='profiles/', null=True, blank=True)
     id_card_photo = models.ImageField(upload_to='id_cards/', null=True, blank=True)
+
+    selfie_with_id_photo = models.ImageField(upload_to='selfie_with_id/', null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
 class Customer(models.Model):
