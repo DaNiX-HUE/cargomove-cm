@@ -2,20 +2,23 @@
     --color-bg: #FFFFFF;
     --color-text: #2C2C2A;
     --color-text-muted: #5F5E5A;
-    --color-border: #D3D1C7;
-    --color-accent: #378ADD;
-    --color-accent-dark: #185FA5;
+    --color-border: #E8D9D2;
 
-    --status-pending: #854F0B;
-    --status-pending-bg: #FAEEDA;
-    --status-matched: #185FA5;
-    --status-matched-bg: #E6F1FB;
-    --status-transit: #712B13;
-    --status-transit-bg: #FAECE7;
-    --status-delivered: #27500A;
-    --status-delivered-bg: #EAF3DE;
-    --status-cancelled: #791F1F;
-    --status-cancelled-bg: #FCEBEB;
+    --color-navy: #26215C;
+    --color-navy-light: #F5C4B3;
+    --color-accent: #D85A30;
+    --color-accent-dark: #993C1D;
+
+    --status-pending: #8A4B0C;
+    --status-pending-bg: #FCEEDA;
+    --status-matched: #993C1D;
+    --status-matched-bg: #FAECE7;
+    --status-transit: #26215C;
+    --status-transit-bg: #E8E7F5;
+    --status-delivered: #2F5B12;
+    --status-delivered-bg: #E7F3E0;
+    --status-cancelled: #8A1F1F;
+    --status-cancelled-bg: #FBE7E7;
 }
 
 body {
@@ -25,13 +28,44 @@ body {
 }
 
 .navbar {
-    border-bottom: 1px solid var(--color-border);
+    background-color: var(--color-navy);
     padding: 1rem 0;
 }
 
 .navbar-brand {
     font-weight: 500;
-    color: var(--color-text) !important;
+    color: var(--color-navy-light) !important;
+}
+
+.navbar-toggler {
+    border-color: var(--color-navy-light);
+}
+
+.navbar-toggler-icon {
+    filter: invert(1);
+
+.navbar-greeting {
+    color: var(--color-navy-light);
+    font-size: 0.9rem;
+}
+
+.user-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background-color: var(--color-accent);
+    color: #fff;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.user-avatar:hover {
+    background-color: var(--color-accent-dark);
+    color: #fff;
+}
 }
 
 main#app {
@@ -47,6 +81,8 @@ main#app.wide {
 .btn-primary {
     background-color: var(--color-accent);
     border-color: var(--color-accent);
+    border-radius: 14px;
+    font-weight: 500;
 }
 
 .btn-primary:hover {
@@ -55,8 +91,9 @@ main#app.wide {
 }
 
 .card {
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border: none;
+    border-radius: 12px;
+    background-color: var(--status-matched-bg);
     box-shadow: none;
     margin-bottom: 1rem;
 }
@@ -64,9 +101,17 @@ main#app.wide {
 .status-badge {
     display: inline-block;
     padding: 0.25rem 0.6rem;
-    border-radius: 4px;
+    border-radius: 8px;
     font-size: 0.8rem;
     font-weight: 500;
+}
+
+.card, .btn, .user-avatar, .status-badge {
+    transition: all 0.15s ease;
+}
+
+.card:hover {
+    box-shadow: 0 2px 12px rgba(38, 33, 92, 0.08);
 }
 
 .status-PENDING { color: var(--status-pending); background: var(--status-pending-bg); }

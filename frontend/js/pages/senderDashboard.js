@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = '../index.html';
         return;
     }
+    await enforceProfileComplete();
     await loadShipments();
     document.getElementById('shipmentsList').addEventListener('click', handleCardClick);
 });

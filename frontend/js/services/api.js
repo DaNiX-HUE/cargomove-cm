@@ -27,7 +27,7 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
 
     const data = await response.json().catch(() => null);
 
-        if (!response.ok) {
+    if (!response.ok) {
         let message = 'Something went wrong.';
         if (data) {
             message = data.detail ? data.detail : extractFirstError(data);
@@ -35,7 +35,10 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
         throw new Error(message);
     }
 
-   function extractFirstError(obj, prefix = '') {
+    return data;
+}
+
+function extractFirstError(obj, prefix = '') {
     for (const key in obj) {
         const value = obj[key];
         const label = prefix ? `${prefix}.${key}` : key;
@@ -50,5 +53,31 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
     }
     return 'Something went wrong.';
 }
+
+async function apiUploadRequest(endpoint, formData) {
+    const headers = {};
+    const token = getAccessToken();
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'PATCH',
+        headers,
+        body: formData,
+    });
+
+    if (response.status === 401) {
+        clearAuth();
+        window.location.href = '../index.html';
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+        throw new Error(data && data.detail ? data.detail : 'Upload failed.');
+    }
+
     return data;
 }
