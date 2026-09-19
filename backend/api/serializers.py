@@ -62,7 +62,7 @@ class VehicleSerializer(serializers.ModelSerializer):
         model = Vehicle
         fields = [
             'id', 'driver', 'vehicle_type', 'license_plate',
-            'max_weight_kg', 'max_volume_m3', 'is_available',
+            'max_weight_kg', 'max_volume_m3', 'is_available','vehicle_photo'
         ]
         read_only_fields = ['driver']
 
