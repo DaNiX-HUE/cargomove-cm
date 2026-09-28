@@ -28,7 +28,6 @@ document.addEventListener("DOMContentLoaded", function () {
         offerStatus: "Pending"
     };
 
-
     function setText(elementId, value) {
 
         const element = document.getElementById(elementId);
@@ -39,48 +38,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
     }
 
-
-
     setText("driverInitials", offer.driverInitials);
-
     setText("driverName", offer.driverName);
-
     setText("driverVerification", offer.driverVerification);
-
     setText("driverRating", offer.driverRating);
-
     setText("driverPhone", offer.driverPhone);
-
     setText("driverId", offer.driverId);
 
-
-
-
     setText("vehicleType", offer.vehicleType);
-
     setText("plateNumber", offer.plateNumber);
-
     setText("maxWeightCapacity", offer.maxWeightCapacity);
-
     setText("maxVolumeCapacity", offer.maxVolumeCapacity);
-
     setText("vehicleConfiguration", offer.vehicleConfiguration);
 
 
-
-
     setText("shipmentId", offer.shipmentId);
-
     setText("deliveryOption", offer.deliveryOption);
-
     setText("pickupLocation", offer.pickupLocation);
-
     setText("destination", offer.destination);
-
     setText("cargoCategory", offer.cargoCategory);
-
     setText("cargoWeight", offer.cargoWeight);
-
 
     setText(
         "estimatedPrice",
@@ -88,10 +65,7 @@ document.addEventListener("DOMContentLoaded", function () {
     );
 
     setText("estimatedPickupTime", offer.estimatedPickupTime);
-
     setText("offerStatus", offer.offerStatus);
-
-
 
     const selectOfferButton =
         document.getElementById("selectOfferBtn");
@@ -99,22 +73,18 @@ document.addEventListener("DOMContentLoaded", function () {
     const offerMessage =
         document.getElementById("offerMessage");
 
-
     if (selectOfferButton) {
 
         selectOfferButton.addEventListener("click", function () {
-
 
             localStorage.setItem(
                 "selectedOffer",
                 JSON.stringify(offer)
             );
 
-
             if (offerMessage) {
 
                 offerMessage.className = "alert alert-success";
-
                 offerMessage.textContent =
                     "Offer selected successfully! Your request is ready for confirmation.";
 

@@ -17,7 +17,7 @@ async function handleSubmit(e) {
     formData.append('selfie_with_id_photo', document.getElementById('selfieWithIdInput').files[0]);
 
     try {
-        await apiUploadRequest('/auth/update-photos/', formData);
+        await apiUploadRequest('/api/auth/update-photos/', formData);
         const user = getCurrentUser();
         window.location.href = user.role === 'DRIVER' ? 'driverDashboard.html' : 'senderDashboard.html';
     } catch (err) {

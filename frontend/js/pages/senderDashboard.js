@@ -13,7 +13,7 @@ async function loadShipments() {
     const statsContainer = document.getElementById('statsCards');
 
     try {
-        const shipments = await apiRequest('/shipments/');
+        const shipments = await apiRequest('/api/shipments/');
 
         renderStats(shipments, statsContainer);
 
