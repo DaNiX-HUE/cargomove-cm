@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadVehicle() {
     const container = document.getElementById('vehicleSection');
     try {
-        const vehicles = await apiRequest('/vehicles/');
+        const vehicles = await apiRequest('/api/vehicles/');
 
         if (vehicles.length === 0) {
             container.innerHTML = `<div class="alert alert-warning">
@@ -45,7 +45,7 @@ async function loadVehicle() {
 async function loadOffers() {
     const container = document.getElementById('offersList');
     try {
-        const offers = await apiRequest('/offers/');
+        const offers = await apiRequest('/api/offers/');
 
         if (offers.length === 0) {
             container.innerHTML = '<p class="text-muted">No offers yet.</p>';

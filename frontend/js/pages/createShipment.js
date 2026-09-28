@@ -114,7 +114,7 @@ async function handleSubmit(e) {
     };
 
     try {
-        await apiRequest('/shipments/', 'POST', payload);
+        await apiRequest('/api/shipments/', 'POST', payload);
         window.location.href = 'senderDashboard.html';
     } catch (err) {
         errorBox.textContent = err.message;
@@ -144,7 +144,7 @@ async function previewPrice() {
     );
 
     try {
-        const result = await apiRequest('/shipments/estimate_price/', 'POST', {
+        const result = await apiRequest('/api/shipments/estimate_price/', 'POST', {
             origin_lat: pickupMarker.getLatLng().lat,
             origin_lng: pickupMarker.getLatLng().lng,
             destination_lat: dropoffMarker.getLatLng().lat,

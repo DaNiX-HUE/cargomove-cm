@@ -12,7 +12,7 @@ async function loadShipments() {
     const container = document.getElementById('shipmentsList');
 
     try {
-        const shipments = await apiRequest('/shipments/');
+        const shipments = await apiRequest('/api/shipments/');
 
         if (shipments.length === 0) {
             container.innerHTML = '<p class="text-muted">No shipments yet. Create your first one!</p>';

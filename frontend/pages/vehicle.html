@@ -55,7 +55,7 @@
 
                             <div class="mb-3">
                                 <label for="plateNumber" class="form-label">
-                                    Plate Number
+                                    License Plate
                                 </label>
 
                                 <input
@@ -117,40 +117,22 @@
                             </div>
 
                             <div class="mb-3">
-                                <label for="configuration" class="form-label">
-                                    Vehicle Configuration
+                                <label for="vehiclePhoto" class="form-label">
+                                    Vehicle Photo
                                 </label>
 
-                                <select
-                                    class="form-select"
-                                    id="configuration"
+                                <input
+                                    type="file"
+                                    class="form-control"
+                                    id="vehiclePhoto"
+                                    accept="image/*"
                                     required
                                 >
-                                    <option value="">Select configuration</option>
-                                    <option value="Covered">Covered</option>
-                                    <option value="Open">Open</option>
-                                    <option value="Refrigerated">Refrigerated</option>
-                                    <option value="Flatbed">Flatbed</option>
-                                    <option value="Side Rails">Side Rails</option>
-                                    <option value="Loading Equipment">Loading Equipment</option>
-                                </select>
+
+                                <div class="from-text">
+                                    Upload a clear picture of your vehicle.
+                                </div>
                             </div>
-
-                            <div class="mb-4">
-                                <label for="status" class="form-label">
-                                    Vehicle Status
-                                </label>
-
-                                <select
-                                    class="form-select"
-                                    id="status"
-                                    required
-                                >
-                                    <option value="Available">Available</option>
-                                    <option value="Unavailable">Unavailable</option>
-                                </select>
-                            </div>
-
                             <div class="d-flex gap-2">
 
                                 <a

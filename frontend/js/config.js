@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+const API_BASE_URL = 'http://127.0.0.1:8000';
 
 const TOKEN_KEY = 'cargomove_access_token';
 const REFRESH_KEY = 'cargomove_refresh_token';

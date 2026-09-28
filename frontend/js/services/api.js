@@ -81,3 +81,42 @@ async function apiUploadRequest(endpoint, formData) {
 
     return data;
 }
+
+async function apiMultipartRequest(endpoint, formData) {
+
+    const headers = {};
+    const token = getAccessToken();
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers: headers,
+        body: formData
+    });
+
+    if (response.status === 401) {
+        clearAuth();
+        window.location.href = '../index.html';
+
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+        let message = 'Something went wrong.';
+
+        if (data) {
+            message = data.detail
+                ? data.detail
+                : extractFirstError(data);
+        }
+
+        throw new Error(message);
+    }
+
+    return data;
+}
