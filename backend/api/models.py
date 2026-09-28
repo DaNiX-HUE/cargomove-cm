@@ -43,6 +43,7 @@ class Vehicle(models.Model):
     license_plate = models.CharField(max_length=20, unique=True)
     max_weight_kg = models.FloatField()
     max_volume_m3 = models.FloatField()
+    vehicle_photo = models.ImageField(upload_to="vehicles/",null=True,blank=True)
     is_available = models.BooleanField(default=True)
     current_lat = models.FloatField(null=True, blank=True)
     current_lng = models.FloatField(null=True, blank=True)

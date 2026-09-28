@@ -21,6 +21,7 @@ from .serializers import (
 
 from .utils import create_offers_for_shipment, transition_shipment_status, haversine_distance_km
 from .pricing import calculate_price
+from rest_framework.parsers import MultiPartParser, FormParser
 
 class MeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -81,6 +82,7 @@ class DriverViewSet(viewsets.ModelViewSet):
 class VehicleViewSet(viewsets.ModelViewSet):
     serializer_class = VehicleSerializer
 
+    parser_classes = [MultiPartParser, FormParser]
     def get_permissions(self):
         if self.action == 'create':
             return [permissions.IsAuthenticated(), IsDriver()]
