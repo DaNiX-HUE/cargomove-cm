@@ -113,6 +113,26 @@ main#app.wide {
 .card:hover {
     box-shadow: 0 2px 12px rgba(38, 33, 92, 0.08);
 }
+.stat-card {
+    background-color: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 1.6rem;
+    font-weight: 500;
+    color: var(--color-navy);
+    margin-bottom: 0.2rem;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-bottom: 0;
+}
 
 .status-PENDING { color: var(--status-pending); background: var(--status-pending-bg); }
 .status-MATCHED { color: var(--status-matched); background: var(--status-matched-bg); }

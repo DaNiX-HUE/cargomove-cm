@@ -137,6 +137,7 @@ class RatingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rating
         fields = ['id', 'shipment', 'customer', 'driver', 'stars', 'comment', 'created_at']
+        read_only_fields = ['customer', 'driver']
 
     def validate_shipment(self, value):
         if value.status != 'DELIVERED':

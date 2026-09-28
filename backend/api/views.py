@@ -267,6 +267,13 @@ class RatingViewSet(viewsets.ModelViewSet):
     serializer_class = RatingSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def perform_create(self, serializer):
+        shipment = serializer.validated_data['shipment']
+        customer = shipment.sender
+        accepted_offer = TransportOffer.objects.get(shipment=shipment, status='ACCEPTED')
+        driver = accepted_offer.vehicle.driver
+        serializer.save(customer=customer, driver=driver)
+
 
 class NotificationViewSet(viewsets.ModelViewSet):
     serializer_class = NotificationSerializer
