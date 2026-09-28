@@ -44,10 +44,13 @@ async function loadVehicle() {
 
 async function loadOffers() {
     const container = document.getElementById('offersList');
+    const statsContainer = document.getElementById('statsCards');
+
     try {
         const offers = await apiRequest('/offers/');
 
         if (offers.length === 0) {
+            statsContainer.innerHTML = '';
             container.innerHTML = '<p class="text-muted">No offers yet.</p>';
             return;
         }
@@ -59,10 +62,47 @@ async function loadOffers() {
             })
         );
 
+        renderStats(withShipments, statsContainer);
         container.innerHTML = withShipments.map(renderOfferCard).join('');
     } catch (err) {
         container.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
     }
+}
+
+function renderStats(withShipments, container) {
+    const total = withShipments.length;
+    const pending = withShipments.filter(w => w.offer.status === 'PENDING').length;
+    const delivered = withShipments.filter(w => w.shipment.status === 'DELIVERED').length;
+    const earnings = withShipments
+        .filter(w => w.offer.status === 'ACCEPTED' && w.shipment.status === 'DELIVERED')
+        .reduce((sum, w) => sum + parseFloat(w.offer.offered_fare_xaf || 0), 0);
+
+    container.innerHTML = `
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <p class="stat-value">${total}</p>
+                <p class="stat-label">Total offers</p>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <p class="stat-value">${pending}</p>
+                <p class="stat-label">Awaiting response</p>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <p class="stat-value">${delivered}</p>
+                <p class="stat-label">Completed</p>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <p class="stat-value">${earnings.toLocaleString()}</p>
+                <p class="stat-label">XAF earned</p>
+            </div>
+        </div>
+    `;
 }
 
 function renderOfferCard({ offer, shipment }) {
@@ -77,7 +117,7 @@ function renderOfferCard({ offer, shipment }) {
         <div class="card">
             <div class="card-body d-flex justify-content-between align-items-center">
                 <div>
-                    <p class="mb-1 fw-medium">${shipment.origin_city} → ${shipment.destination_city}</p>
+                    <p class="mb-1 fw-medium"><a href="shipmentDetail.html?id=${shipment.id}" class="text-decoration-none text-dark">${shipment.origin_city} → ${shipment.destination_city}</a></p>
                     <p class="mb-0 text-muted" style="font-size: 0.85rem;">
                         ${shipment.total_weight_kg} kg &middot; Fare: ${offer.offered_fare_xaf} XAF
                     </p>
