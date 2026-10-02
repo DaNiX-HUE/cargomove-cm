@@ -26,8 +26,20 @@ async function loadShipment(id) {
         const shipment = await apiRequest(`/shipments/${id}/`);
         renderShipment(shipment);
 
+        let isSender = false;
+        try {
+            const user = typeof getCurrentUser === 'function'
+                ? getCurrentUser()
+                : JSON.parse(localStorage.getItem('user') || 'null');
+            isSender = user && user.role === 'SENDER';
+        } catch (e) {
+            isSender = false;
+        }
+        if (shipment.status === 'PENDING' && isSender) {
+            await loadOffersForSender(id);
+        }
         if (shipment.status === 'IN_TRANSIT') {
-            await loadTracking(id);
+            loadTracking(id);
         }
         if (shipment.status === 'DELIVERED') {
             setupRatingForm(id);
@@ -63,7 +75,125 @@ function renderShipment(shipment) {
     `;
 }
 
-async function loadTracking(shipmentId) {
+async function loadOffersForSender(shipmentId) {
+    const section = document.getElementById('offersSection');
+    const container = document.getElementById('offersForSenderList');
+    try {
+        const allOffers = await apiRequest('/offers/');
+        const offers = allOffers.filter(o => o.shipment === parseInt(shipmentId));
+
+        if (offers.length === 0) {
+            section.classList.add('d-none');
+            return;
+        }
+
+        offersById = {};
+        offers.forEach(o => { offersById[o.id] = o; });
+        section.classList.remove('d-none');
+        container.innerHTML = offers.map(renderSenderOfferCard).join('');
+
+        container.querySelectorAll('[data-approve-offer-id]').forEach(btn => {
+            btn.addEventListener('click', () => handleSenderOfferAction(btn.dataset.approveOfferId, 'sender_approve', shipmentId));
+        });
+        container.querySelectorAll('[data-decline-offer-id]').forEach(btn => {
+            btn.addEventListener('click', () => handleSenderOfferAction(btn.dataset.declineOfferId, 'sender_decline', shipmentId));
+        });
+        container.querySelectorAll('[data-driver-detail-id]').forEach(el => {
+            el.addEventListener('click', () => showDriverModal(el.dataset.driverDetailId));
+        });
+    } catch (err) {
+        console.error('Failed to load offers:', err.message);
+    }
+}
+
+let offersById = {};
+
+function renderSenderOfferCard(offer) {
+    const actionButtons = offer.status === 'PENDING'
+        ? `<button class="btn btn-sm btn-primary" data-approve-offer-id="${offer.id}">Approve</button>
+           <button class="btn btn-sm btn-outline-danger ms-1" data-decline-offer-id="${offer.id}">Decline</button>`
+        : '';
+    const ratingText = offer.driver_rating ? ` &middot; ★ ${offer.driver_rating.toFixed(1)}` : '';
+    const avatarInner = offer.driver_profile_picture
+        ? `<img src="${offer.driver_profile_picture}" alt="${offer.driver_username}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;">`
+        : `<div style="width:48px;height:48px;border-radius:50%;background:#D85A30;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;">${(offer.driver_username || '?').charAt(0).toUpperCase()}</div>`;
+    const avatarHtml = `<div data-driver-detail-id="${offer.id}" style="cursor:pointer;flex-shrink:0;" title="View driver details">${avatarInner}</div>`;
+    return `
+        <div class="card">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    ${avatarHtml}
+                    <div>
+                        <p class="mb-1 fw-medium" style="cursor:pointer;" data-driver-detail-id="${offer.id}">${offer.driver_username} — ${offer.vehicle_type} (${offer.vehicle_license_plate})</p>
+                        <p class="mb-0 text-muted" style="font-size: 0.85rem;">
+                            ${offer.driver_phone || 'No phone on file'} &middot; Fare: ${offer.offered_fare_xaf} XAF${ratingText}
+                        </p>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="status-badge status-${offer.status === 'ACCEPTED' ? 'MATCHED' : offer.status === 'EXPIRED' ? 'CANCELLED' : offer.status}">
+                        ${offer.status}
+                    </span>
+                    ${actionButtons}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function showDriverModal(offerId) {
+    const offer = offersById[offerId];
+    if (!offer) return;
+    const avatarHtml = offer.driver_profile_picture
+        ? `<img src="${offer.driver_profile_picture}" alt="${offer.driver_username}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;">`
+        : `<div style="width:88px;height:88px;border-radius:50%;background:#D85A30;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:2rem;">${(offer.driver_username || '?').charAt(0).toUpperCase()}</div>`;
+    const vehiclePhotoHtml = offer.vehicle_photo
+        ? `<img src="${offer.vehicle_photo}" alt="${offer.vehicle_type}" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;margin-top:0.75rem;">`
+        : '';
+    document.getElementById('driverModalBody').innerHTML = `
+        <div class="text-center mb-3">
+            ${avatarHtml}
+            <h5 class="mt-2 mb-0">${offer.driver_username}</h5>
+            <p class="text-muted mb-0">${offer.driver_rating ? `★ ${offer.driver_rating.toFixed(1)} rating` : 'No ratings yet'}</p>
+        </div>
+        <ul class="list-unstyled mb-0">
+            <li class="mb-2"><strong>Phone:</strong> ${offer.driver_phone || 'Not provided'}</li>
+            <li class="mb-2"><strong>Vehicle:</strong> ${offer.vehicle_type}</li>
+            <li class="mb-2"><strong>License plate:</strong> ${offer.vehicle_license_plate}</li>
+            <li class="mb-2"><strong>Offered fare:</strong> ${offer.offered_fare_xaf} XAF</li>
+        </ul>
+        ${vehiclePhotoHtml}
+    `;
+    const modalEl = document.getElementById('driverInfoModal');
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+}
+
+async function handleSenderOfferAction(offerId, action, shipmentId) {
+    try {
+        await apiRequest(`/offers/${offerId}/${action}/`, 'POST');
+        await loadShipment(shipmentId);
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+/* ---------- Live tracking map (auto-refreshes every 20s while IN_TRANSIT) ---------- */
+
+let trackingMap = null;
+let trackingPolyline = null;
+let trackingMarker = null;
+let trackingIntervalId = null;
+
+function loadTracking(shipmentId) {
+    refreshTracking(shipmentId);
+    if (trackingIntervalId) clearInterval(trackingIntervalId);
+    trackingIntervalId = setInterval(function () {
+        refreshTracking(shipmentId);
+    }, 20000);
+}
+
+async function refreshTracking(shipmentId) {
     try {
         const allTracking = await apiRequest('/tracking/');
         const points = allTracking.filter(t => t.shipment === parseInt(shipmentId));
@@ -71,14 +201,22 @@ async function loadTracking(shipmentId) {
         if (points.length === 0) return;
 
         document.getElementById('trackingMapContainer').classList.remove('d-none');
-        const map = L.map('trackingMap').setView([points[0].current_lat, points[0].current_lng], 10);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors',
-        }).addTo(map);
 
         const latlngs = points.map(p => [p.current_lat, p.current_lng]);
-        L.polyline(latlngs, { color: '#D85A30' }).addTo(map);
-        L.marker(latlngs[latlngs.length - 1]).addTo(map).bindPopup('Latest position').openPopup();
+        const latest = latlngs[latlngs.length - 1];
+
+        if (!trackingMap) {
+            trackingMap = L.map('trackingMap').setView(latest, 10);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors',
+            }).addTo(trackingMap);
+            trackingPolyline = L.polyline(latlngs, { color: '#D85A30' }).addTo(trackingMap);
+            trackingMarker = L.marker(latest).addTo(trackingMap).bindPopup('Latest position').openPopup();
+        } else {
+            trackingPolyline.setLatLngs(latlngs);
+            trackingMarker.setLatLng(latest);
+            trackingMap.panTo(latest);
+        }
     } catch (err) {
         console.error('Tracking load failed:', err);
     }

@@ -54,7 +54,7 @@ function extractFirstError(obj, prefix = '') {
     return 'Something went wrong.';
 }
 
-async function apiUploadRequest(endpoint, formData) {
+async function apiUploadRequest(endpoint, formData, method = 'PATCH') {
     const headers = {};
     const token = getAccessToken();
     if (token) {
@@ -62,7 +62,7 @@ async function apiUploadRequest(endpoint, formData) {
     }
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: 'PATCH',
+        method,
         headers,
         body: formData,
     });
