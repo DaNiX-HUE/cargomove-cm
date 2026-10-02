@@ -9,8 +9,8 @@ from .views import (
 )
 
 router = DefaultRouter()
-router.register('customers', CustomerViewSet)
-router.register('drivers', DriverViewSet)
+router.register('customers', CustomerViewSet, basename='customer')
+router.register('drivers', DriverViewSet, basename='driver')
 router.register('vehicles', VehicleViewSet, basename='vehicle')
 router.register('shipments', ShipmentViewSet, basename='shipment')
 router.register('offers', TransportOfferViewSet, basename='offer')
