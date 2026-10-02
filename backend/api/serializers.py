@@ -15,7 +15,9 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'email', 'password', 'role',
             'phone_number', 'address', 'profile_picture', 'id_card_photo','selfie_with_id_photo',
+            'is_staff',
         ]
+        read_only_fields = ['is_staff']
 
     def create(self, validated_data):
         password = validated_data.pop('password')
@@ -62,9 +64,10 @@ class VehicleSerializer(serializers.ModelSerializer):
         model = Vehicle
         fields = [
             'id', 'driver', 'vehicle_type', 'license_plate',
-            'max_weight_kg', 'max_volume_m3', 'is_available','vehicle_photo'
+            'max_weight_kg', 'max_volume_m3', 'is_available', 'vehicle_photo',
+            'current_lat', 'current_lng', 'last_location_update',
         ]
-        read_only_fields = ['driver']
+        read_only_fields = ['driver', 'current_lat', 'current_lng', 'last_location_update']
 
 
 class CargoItemSerializer(serializers.ModelSerializer):
@@ -121,10 +124,22 @@ class ShipmentSerializer(serializers.ModelSerializer):
         return shipment
 
 class TransportOfferSerializer(serializers.ModelSerializer):
+    vehicle_type = serializers.CharField(source='vehicle.vehicle_type', read_only=True)
+    vehicle_license_plate = serializers.CharField(source='vehicle.license_plate', read_only=True)
+    vehicle_photo = serializers.ImageField(source='vehicle.vehicle_photo', read_only=True, allow_null=True)
+    driver_username = serializers.CharField(source='vehicle.driver.user.username', read_only=True)
+    driver_phone = serializers.CharField(source='vehicle.driver.user.phone_number', read_only=True)
+    driver_rating = serializers.FloatField(source='vehicle.driver.rating_average', read_only=True)
+    driver_profile_picture = serializers.ImageField(source='vehicle.driver.user.profile_picture', read_only=True, allow_null=True)
+
     class Meta:
         model = TransportOffer
-        fields = ['id', 'shipment', 'vehicle', 'offered_fare_xaf', 'status', 'created_at']
-        read_only_fields = ['status']
+        fields = [
+            'id', 'shipment', 'vehicle', 'offered_fare_xaf', 'status', 'requested_by_driver', 'created_at',
+            'vehicle_type', 'vehicle_license_plate', 'vehicle_photo', 'driver_username', 'driver_phone', 'driver_rating',
+            'driver_profile_picture',
+        ]
+        read_only_fields = ['status', 'requested_by_driver']
 
 
 class TrackingHistorySerializer(serializers.ModelSerializer):
@@ -148,7 +163,6 @@ class RatingSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         rating = super().create(validated_data)
-        # Backend must recalculate the driver's average rating (doc: Ratings module).
         driver = rating.driver
         avg = driver.received_ratings.aggregate(avg=Avg('stars'))['avg'] or 0
         driver.rating_average = round(avg, 2)
