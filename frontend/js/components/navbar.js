@@ -7,12 +7,12 @@ function renderNavbar() {
     const user = getCurrentUser();
 
     if (!user) {
-        navLinks.innerHTML = `<li class="nav-item"><a class="nav-link" href="index.html">Log in</a></li>`;
+     navLinks.innerHTML = `<li class="nav-item"><a class="nav-link" href="/index.html">Log in</a></li>`;
         return;
     }
 
     const initial = user.username.charAt(0).toUpperCase();
-    const dashboardLink = user.role === 'DRIVER' ? 'driverDashboard.html' : 'senderDashboard.html';
+    const dashboardLink = user.role === 'DRIVER' ? '/pages/driverDashboard.html' : '/pages/senderDashboard.html';
 
     navLinks.innerHTML = `
         <li class="nav-item d-flex align-items-center">

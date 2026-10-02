@@ -45,13 +45,13 @@ function setupLoginForm() {
 
         try {
             const user = await login(username, password);
-            if (user.is_staff) {
-                window.location.href = 'pages/adminPanel.html';
-            } else if (user.role === 'DRIVER') {
-                window.location.href = 'pages/driverDashboard.html';
-            } else {
-                window.location.href = 'pages/senderDashboard.html';
-            }
+          if (user.is_staff) {
+         window.location.href = '/pages/adminPanel.html';
+          } else if (user.role === 'DRIVER') {
+            window.location.href = '/pages/driverDashboard.html';
+          } else {
+           window.location.href = '/pages/senderDashboard.html';
+          }
         } catch (err) {
             errorBox.textContent = err.message;
             errorBox.classList.remove('d-none');

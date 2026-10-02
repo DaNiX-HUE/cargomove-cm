@@ -26,7 +26,7 @@ async function login(username, password) {
 
 function logout() {
     clearAuth();
-    window.location.href = 'index.html';
+    window.location.href = '/index.html';   // was: 'index.html'
 }
 async function enforceProfileComplete() {
     try {
