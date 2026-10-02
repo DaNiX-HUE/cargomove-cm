@@ -5,17 +5,22 @@ Single source of truth for shipment price estimation, kept separate from
 views/serializers so it stays easy to test and easy to tune if the
 business rules change later (per the architecture doc's recommendation).
 
-ASSUMPTION: the doc specifies the function signature but not the exact
-tariff. The constants below are placeholder rates (in XAF) — replace
-them with the real numbers your team agrees on before going to
-production. Everything that depends on price (offers, dashboards) reads
-through calculate_price(), so changing the constants here is enough.
+Rates below were set from research on Cameroonian/regional road freight
+costs (Oct 2026): diesel at ~828 XAF/L, benchmark African small/medium
+truck rates of roughly 270-840 XAF/km, and regional data showing West/
+Central African road freight runs 1.5-2.2x higher than South African or
+US rates. Since CargoMove pools multiple shipments onto one truck (LTL),
+RATE_PER_KM is kept below a dedicated full-truck charter rate, with the
+shared-load discount doing the work of making pooled trips cheaper for
+customers while still filling a driver's truck. Revisit these numbers
+once there's real usage data (driver acceptance rate, customer drop-off
+at checkout) to tune further.
 """
 
-BASE_FARE_XAF = 2000
-RATE_PER_KM = 250
-RATE_PER_KG = 15
-RATE_PER_M3 = 5000
+BASE_FARE_XAF = 2500
+RATE_PER_KM = 400
+RATE_PER_KG = 18
+RATE_PER_M3 = 6000
 
 DELIVERY_TYPE_MULTIPLIERS = {
     'ECONOMY': 1.0,
@@ -23,9 +28,9 @@ DELIVERY_TYPE_MULTIPLIERS = {
     'SCHEDULED': 1.1,
 }
 
-SHARED_LOAD_DISCOUNT = 0.85    # 15% off when the cargo shares a truck
-LOADING_ASSISTANCE_FEE = 3000  # flat fee if the driver must load/unload
-SPECIAL_HANDLING_FEE = 5000    # flat fee for fragile / special cargo
+SHARED_LOAD_DISCOUNT = 0.80    # 20% off when the cargo shares a truck
+LOADING_ASSISTANCE_FEE = 3500  # flat fee if the driver must load/unload
+SPECIAL_HANDLING_FEE = 6000    # flat fee for fragile / special cargo
 
 
 def calculate_price(
