@@ -21,7 +21,7 @@ async function apiRequest(endpoint, method = 'GET', body = null) {
 
     if (response.status === 401) {
         clearAuth();
-        window.location.href = 'index.html';
+      window.location.href = '/index.html';
         throw new Error('Session expired. Please log in again.');
     }
 
@@ -69,7 +69,7 @@ async function apiUploadRequest(endpoint, formData, method = 'PATCH') {
 
     if (response.status === 401) {
         clearAuth();
-        window.location.href = '../index.html';
+       window.location.href = '/index.html';
         throw new Error('Session expired. Please log in again.');
     }
 
