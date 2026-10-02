@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://CargoMove.onrender.com/api';
+const API_BASE_URL = 'https://cargomove-backend.onrender.com/api';
 
 const TOKEN_KEY = 'cargomove_access_token';
 const REFRESH_KEY = 'cargomove_refresh_token';
