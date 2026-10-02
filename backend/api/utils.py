@@ -1,10 +1,24 @@
 import math
 
+# Straight-line (Haversine) distance always undershoots real road distance,
+# since roads bend around terrain/obstacles instead of going point-to-point.
+# E.g. Yaounde -> Douala is ~194km straight-line but ~240km by road, a ~24%
+# gap. This factor is a rough, fixed correction applied to every distance
+# calculation (pricing, matching radius, "nearby shipments") so drivers
+# aren't underpaid for actual km driven and matching isn't overly generous
+# about what counts as "nearby". It's a stopgap: a real fix would call a
+# routing engine (OSRM, already used for the Leaflet maps) to get actual
+# road distance per pair of points instead of one flat multiplier for
+# every route regardless of terrain.
+ROAD_DISTANCE_CORRECTION_FACTOR = 1.25
+
 
 def haversine_distance_km(lat1, lng1, lat2, lng2):
     """
-    Calculate the great-circle distance between two GPS points,
-    in kilometers, accounting for the Earth's curvature.
+    Calculate the great-circle distance between two GPS points, in
+    kilometers, accounting for the Earth's curvature, then scale it by
+    ROAD_DISTANCE_CORRECTION_FACTOR to approximate real road distance
+    rather than a straight-line "as the crow flies" figure.
     """
     R = 6371  # Earth's radius in km
 
@@ -19,7 +33,8 @@ def haversine_distance_km(lat1, lng1, lat2, lng2):
     )
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-    return R * c
+    straight_line_km = R * c
+    return straight_line_km * ROAD_DISTANCE_CORRECTION_FACTOR
 
 from django.db.models import Sum
 from .models import Vehicle, TransportOffer

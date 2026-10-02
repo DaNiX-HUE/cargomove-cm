@@ -1,10 +1,14 @@
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import generics, viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .utils import create_offers_for_shipment, transition_shipment_status
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
+from .utils import create_offers_for_shipment, transition_shipment_status, haversine_distance_km, estimate_shipment_price
+from .pricing import calculate_price
 from .permissions import IsCustomer, IsDriver
 from .notifications import notify
 from .models import (
@@ -18,10 +22,6 @@ from .serializers import (
     RatingSerializer, NotificationSerializer,
 )
 
-
-from .utils import create_offers_for_shipment, transition_shipment_status, haversine_distance_km
-from .pricing import calculate_price
-from rest_framework.parsers import MultiPartParser, FormParser
 
 class MeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -68,28 +68,88 @@ class DriverRegisterView(generics.CreateAPIView):
 # Login uses SimpleJWT's built-in view directly in urls.py — no custom code needed here.
 
 class CustomerViewSet(viewsets.ModelViewSet):
-    queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return Customer.objects.all()
+        return Customer.objects.filter(user=user)
+
+    def destroy(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return Response(
+                {'detail': 'Only admins can delete customer accounts.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        customer = self.get_object()
+
+        has_active_shipment = Shipment.objects.filter(
+            sender=customer, status__in=['PENDING', 'MATCHED', 'IN_TRANSIT'],
+        ).exists()
+        if has_active_shipment:
+            return Response(
+                {'detail': 'This customer has a shipment currently in progress and cannot be deleted until it is delivered or cancelled.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        customer.user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class DriverViewSet(viewsets.ModelViewSet):
-    queryset = Driver.objects.all()
     serializer_class = DriverSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return Driver.objects.all()
+        return Driver.objects.filter(user=user)
+
+    def destroy(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return Response(
+                {'detail': 'Only admins can delete driver accounts.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        driver = self.get_object()
+
+        # Business rule: can't delete a driver with a shipment currently in progress —
+        # deleting their account would cascade-delete the TransportOffer and strand the shipment.
+        has_active_shipment = TransportOffer.objects.filter(
+            vehicle__driver=driver, status='ACCEPTED',
+        ).exclude(shipment__status__in=['DELIVERED', 'CANCELLED']).exists()
+        if has_active_shipment:
+            return Response(
+                {'detail': 'This driver has a shipment currently in progress and cannot be deleted until it is delivered or cancelled.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Delete the underlying User, not just the Driver row — this cascades to
+        # Driver, their Vehicle(s), TransportOffers on those vehicles, Ratings, and Notifications.
+        driver.user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class VehicleViewSet(viewsets.ModelViewSet):
     serializer_class = VehicleSerializer
 
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
     def get_permissions(self):
         if self.action == 'create':
             return [permissions.IsAuthenticated(), IsDriver()]
         return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
-        return Vehicle.objects.filter(driver__user=self.request.user)
+        user = self.request.user
+        if user.is_staff:
+            return Vehicle.objects.all()
+        return Vehicle.objects.filter(driver__user=user)
 
     def perform_create(self, serializer):
         driver = Driver.objects.get(user=self.request.user)
@@ -108,6 +168,37 @@ class VehicleViewSet(viewsets.ModelViewSet):
             )
         return super().destroy(request, *args, **kwargs)
 
+    @action(detail=True, methods=['post'])
+    def update_location(self, request, pk=None):
+        vehicle = self.get_object()
+        try:
+            lat = float(request.data['current_lat'])
+            lng = float(request.data['current_lng'])
+        except (KeyError, ValueError, TypeError):
+            return Response(
+                {'detail': 'current_lat and current_lng are required numbers.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        vehicle.current_lat = lat
+        vehicle.current_lng = lng
+        vehicle.last_location_update = timezone.now()
+        vehicle.save(update_fields=['current_lat', 'current_lng', 'last_location_update'])
+
+        # If this vehicle is actively carrying a shipment, log a tracking point for it
+        # so the sender's live map has fresh data to show.
+        active_offer = TransportOffer.objects.filter(
+            vehicle=vehicle, status='ACCEPTED', shipment__status='IN_TRANSIT',
+        ).select_related('shipment').first()
+        if active_offer:
+            TrackingHistory.objects.create(
+                shipment=active_offer.shipment,
+                current_lat=lat,
+                current_lng=lng,
+            )
+
+        return Response(VehicleSerializer(vehicle).data)
+
 
 class ShipmentViewSet(viewsets.ModelViewSet):
     serializer_class = ShipmentSerializer
@@ -115,7 +206,26 @@ class ShipmentViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action == 'create':
             return [permissions.IsAuthenticated(), IsCustomer()]
+        if self.action in ('nearby', 'request_offer'):
+            return [permissions.IsAuthenticated(), IsDriver()]
         return [permissions.IsAuthenticated()]
+
+    def destroy(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return Response(
+                {'detail': 'Only admins can delete shipments.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        shipment = self.get_object()
+
+        if shipment.status in ('MATCHED', 'IN_TRANSIT'):
+            return Response(
+                {'detail': 'This shipment has an active driver assigned and cannot be deleted. Cancel it first.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return super().destroy(request, *args, **kwargs)
 
     def get_queryset(self):
         user = self.request.user
@@ -141,6 +251,14 @@ class ShipmentViewSet(viewsets.ModelViewSet):
             transition_shipment_status(shipment, 'IN_TRANSIT')
         except ValueError as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        notify(
+            shipment.sender.user,
+            'Your shipment is in transit',
+            f'Your shipment #{shipment.id} ({shipment.origin_city} → {shipment.destination_city}) '
+            f'is now on its way. Track its progress on the shipment page.',
+        )
+
         return Response(ShipmentSerializer(shipment).data)
 
     @action(detail=True, methods=['post'])
@@ -160,6 +278,7 @@ class ShipmentViewSet(viewsets.ModelViewSet):
         except ValueError as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(ShipmentSerializer(shipment).data)
+
     @action(detail=False, methods=['post'])
     def estimate_price(self, request):
         data = request.data
@@ -184,6 +303,72 @@ class ShipmentViewSet(viewsets.ModelViewSet):
             )
         return Response({'estimated_price_xaf': price, 'distance_km': round(distance_km, 2)})
 
+    @action(detail=False, methods=['get'])
+    def nearby(self, request):
+        try:
+            lat = float(request.query_params['lat'])
+            lng = float(request.query_params['lng'])
+        except (KeyError, ValueError, TypeError):
+            return Response(
+                {'detail': 'lat and lng query parameters are required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        radius_km = float(request.query_params.get('radius_km', 100))
+
+        results = []
+        for shipment in Shipment.objects.filter(status='PENDING'):
+            distance_km = haversine_distance_km(
+                lat, lng, shipment.origin_lat, shipment.origin_lng,
+            )
+            if distance_km <= radius_km:
+                data = ShipmentSerializer(shipment).data
+                data['distance_km'] = round(distance_km, 2)
+                results.append(data)
+
+        results.sort(key=lambda s: s['distance_km'])
+        return Response(results)
+
+    @action(detail=True, methods=['post'])
+    def request_offer(self, request, pk=None):
+        shipment = self.get_object()
+        if shipment.status != 'PENDING':
+            return Response({'detail': 'This shipment is no longer available.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        vehicle = Vehicle.objects.filter(driver__user=request.user).first()
+        if not vehicle:
+            return Response({'detail': 'Register a vehicle before requesting shipments.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not shipment.estimated_price_xaf:
+            estimate_shipment_price(shipment)
+
+        offer, created = TransportOffer.objects.get_or_create(
+            shipment=shipment, vehicle=vehicle,
+            defaults={
+                'offered_fare_xaf': shipment.estimated_price_xaf,
+                'status': 'PENDING',
+                'requested_by_driver': True,
+            },
+        )
+        if not created and offer.status != 'PENDING':
+            return Response(
+                {'detail': f"You already have a '{offer.status}' offer on this shipment."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if created:
+            notify(
+                shipment.sender.user,
+                'A driver wants to carry your shipment',
+                f'{vehicle.driver.user.username} requested to carry shipment #{shipment.id} '
+                f'({shipment.origin_city} → {shipment.destination_city}). Review it to approve or decline.',
+            )
+
+        return Response(
+            TransportOfferSerializer(offer).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
 class TransportOfferViewSet(viewsets.ModelViewSet):
     serializer_class = TransportOfferSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -206,6 +391,11 @@ class TransportOfferViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'This is not your offer.'}, status=status.HTTP_403_FORBIDDEN)
         if offer.status != 'PENDING':
             return Response({'detail': 'This offer is no longer available.'}, status=status.HTTP_400_BAD_REQUEST)
+        if offer.requested_by_driver:
+            return Response(
+                {'detail': 'You requested this shipment — wait for the sender to approve it.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         with transaction.atomic():
             shipment = Shipment.objects.select_for_update().get(pk=offer.shipment_id)
@@ -253,6 +443,69 @@ class TransportOfferViewSet(viewsets.ModelViewSet):
             offer.shipment.sender.user,
             'Driver declined an offer',
             f'{offer.vehicle.driver.user.username} declined shipment #{offer.shipment_id}.',
+        )
+
+        return Response(TransportOfferSerializer(offer).data)
+
+    @action(detail=True, methods=['post'])
+    def sender_approve(self, request, pk=None):
+        """
+        Sender-side counterpart to accept(): approves a driver-requested offer.
+        Same first-accepted-wins business rule as accept().
+        """
+        offer = self.get_object()
+
+        if offer.shipment.sender.user != request.user:
+            return Response({'detail': 'This is not your shipment.'}, status=status.HTTP_403_FORBIDDEN)
+        if offer.status != 'PENDING':
+            return Response({'detail': 'This offer is no longer available.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            shipment = Shipment.objects.select_for_update().get(pk=offer.shipment_id)
+            if shipment.status != 'PENDING':
+                return Response(
+                    {'detail': 'This shipment already has an accepted driver.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            offer.status = 'ACCEPTED'
+            offer.save(update_fields=['status'])
+
+            TransportOffer.objects.filter(
+                shipment=shipment, status='PENDING',
+            ).exclude(pk=offer.pk).update(status='EXPIRED')
+
+            shipment.status = 'MATCHED'
+            shipment.save(update_fields=['status'])
+
+            vehicle = offer.vehicle
+            vehicle.is_available = False
+            vehicle.save(update_fields=['is_available'])
+
+        notify(
+            vehicle.driver.user,
+            'Your shipment request was approved',
+            f'Your request to carry shipment #{shipment.id} was approved.',
+        )
+
+        return Response(TransportOfferSerializer(offer).data)
+
+    @action(detail=True, methods=['post'])
+    def sender_decline(self, request, pk=None):
+        offer = self.get_object()
+
+        if offer.shipment.sender.user != request.user:
+            return Response({'detail': 'This is not your shipment.'}, status=status.HTTP_403_FORBIDDEN)
+        if offer.status != 'PENDING':
+            return Response({'detail': 'This offer was already handled.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        offer.status = 'REJECTED'
+        offer.save(update_fields=['status'])
+
+        notify(
+            offer.vehicle.driver.user,
+            'Your shipment request was declined',
+            f'Your request to carry shipment #{offer.shipment_id} was declined.',
         )
 
         return Response(TransportOfferSerializer(offer).data)
