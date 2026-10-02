@@ -112,6 +112,7 @@ class TransportOffer(models.Model):
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='offers')
     offered_fare_xaf = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=10, choices=OFFER_STATUS, default='PENDING')
+    requested_by_driver = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
